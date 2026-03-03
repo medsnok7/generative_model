@@ -5,6 +5,7 @@ import todevice as dv
 class DiscriminatorModel(nn.Module):
     def __init__(self):
         super().__init__()
+        self.loss_fn = nn.BCEWithLogitsLoss()
         self.discriminator=nn.Sequential(
             #shape=(3,64,64)
             nn.Conv2d(in_channels=3,out_channels=64,kernel_size=4,stride=2,padding=1,bias=False),

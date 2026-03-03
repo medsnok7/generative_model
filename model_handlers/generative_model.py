@@ -54,34 +54,34 @@ train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
 show_batch(train_loader)
 
-device = dv.get_defaul_device()
-print(f"Using device: {device}")
 
 # --------------------------
 # ImageGenerator Class
 # --------------------------
 class ImageGenerator:
-    sample_dir = "generated"
-
     def __init__(self):
-        self.generator = GeneratorModel()
-        self.discriminator = DiscriminatorModel()
-        self.loss_fn = nn.BCELoss()  # assuming binary classification for GAN
+        self.device = dv.get_defaul_device()
+        self.generator = GeneratorModel().to(self.device)
+        self.discriminator = DiscriminatorModel().to(self.device)
+        self.loss_fn = nn.BCEWithLogitsLoss().to(self.device)  # assuming binary classification for GAN
+        self.sample_dir = "generated"
+        self.fixed_latent = torch.randn(64, 128, 1, 1, device=self.device)
+
 
     def train_discriminator(self, real_images, optimizer):
         optimizer.zero_grad()
 
         # Real images
         real_preds = self.discriminator(real_images)
-        real_targets = torch.ones(real_images.size(0), 1)
+        real_targets = torch.ones(real_images.size(0), 1, device=self.device)
         real_loss = self.loss_fn(real_preds, real_targets)
         real_score = real_preds.mean().item()
 
         # Fake images
-        latent = torch.randn(real_images.size(0), 128, 1, 1)
-        fake_images = self.generator(latent)
+        latent = torch.randn(real_images.size(0), 128, 1, 1, device=self.device)
+        fake_images = self.generator(latent).detach()  # Detach to avoid training generator on these labels
         fake_preds = self.discriminator(fake_images)
-        fake_targets = torch.zeros(fake_images.size(0), 1)
+        fake_targets = torch.zeros(fake_images.size(0), 1, device=self.device)
         fake_loss = self.loss_fn(fake_preds, fake_targets)
         fake_score = fake_preds.mean().item()
 
@@ -94,7 +94,7 @@ class ImageGenerator:
     def train_generator(self, optimizer):
         optimizer.zero_grad()
         latent = torch.randn(128, 128, 1, 1)
-        fake_images = self.generator(latent)
+        fake_images = self.generator(latent).detach()  # Detach to avoid training discriminator on these labels
         preds = self.discriminator(fake_images)
         targets = torch.ones(fake_images.size(0), 1)
         loss = self.loss_fn(preds, targets)
@@ -117,17 +117,18 @@ class ImageGenerator:
 
     def fit(self, epochs, lr, start_idx=1):
         torch.cuda.empty_cache()
-
+        
+        #train 
+        self.generator.train()
+        self.discriminator.train()
         # Optimizers
         opt_d = torch.optim.Adam(self.discriminator.parameters(), lr=lr, betas=(0.5, 0.999))
         opt_g = torch.optim.Adam(self.generator.parameters(), lr=lr, betas=(0.5, 0.999))
 
-        fixed_latent = torch.randn(64, 128, 1, 1)
-
         for epoch in range(epochs):
             for real_images, _ in tqdm(train_loader):
                 # Train discriminator
-                loss_d, real_score, fake_score = self.train_discriminator(real_images, opt_d)
+                loss_d, real_score, fake_score = self.train_discriminator(real_images.to(self.device), opt_d)
 
                 # Train generator
                 loss_g = self.train_generator(opt_g)
@@ -136,18 +137,9 @@ class ImageGenerator:
             print(f"Epoch [{epoch+1}/{epochs}], loss_g: {loss_g:.4f}, loss_d: {loss_d:.4f}, "
                   f"real_score: {real_score:.4f}, fake_score: {fake_score:.4f}")
 
-            self.save_samples(epoch + start_idx, fixed_latent, show=False)
+            self.save_samples(epoch + start_idx, self.fixed_latent, show=False)
 
         # Save models
         torch.save(self.generator.state_dict(), "./models/generator.pth")
         torch.save(self.discriminator.state_dict(), "./models/discriminator.pth")
 
-# --------------------------
-# Training
-# --------------------------
-lr = 0.0002
-epochs = 10
-fixed_latent = torch.randn(64, 128, 1, 1)
-
-image_generator = ImageGenerator()
-image_generator.fit(epochs, lr)
