@@ -9,14 +9,15 @@ import matplotlib.pyplot as plt
 from tqdm.auto import tqdm
 
 # Import custom modules
-from generator import GeneratorModel
-from discriminator import DiscriminatorModel
+from .generator import GeneratorModel
+from .discriminator import DiscriminatorModel
 import todevice as dv  # Assumed custom device helper
 
 # --------------------------
 # Settings and hyperparameters
 # --------------------------
-data_dir = "./animefacedataset"
+project_root = os.path.dirname(os.path.dirname(__file__))  # if inside model_handlers/
+data_dir = os.path.join(project_root, "animefacedataset")
 image_size = 64
 batch_size = 128
 stats = ((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
