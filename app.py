@@ -1,4 +1,4 @@
-from generative_model import ImageGenerator
+from model_handles/generative_model import ImageGenerator
 
 
 # --------------------------
