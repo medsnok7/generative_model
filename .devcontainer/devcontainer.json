@@ -19,5 +19,5 @@
     ],
     "forwardPorts": [8000],
     "postCreateCommand": "pip install --upgrade pip",
-    "initializeCommand": "bash .devcontainer/pre_spawn.sh gen_ai latest medsnok7"
+    "initializeCommand": "bash .devcontainer/pre_spawn.sh gen_ai latest medsnok7 insert_token_id_here"
   }
