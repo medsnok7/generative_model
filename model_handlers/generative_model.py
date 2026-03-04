@@ -66,7 +66,7 @@ class ImageGenerator:
         self.discriminator = DiscriminatorModel().to(self.device)
         self.loss_fn = nn.BCEWithLogitsLoss().to(self.device)  # assuming binary classification for GAN
         self.sample_dir = "generated"
-        self.fixed_latent = torch.randn(64, 128, 1, 1, device=self.device)
+        self.fixed_latent = torch.randn(batch_size, 128, 1, 1, device=self.device)
 
 
     def train_discriminator(self, real_images, optimizer):
@@ -79,8 +79,8 @@ class ImageGenerator:
         real_score = real_preds.mean().item()
 
         # Fake images
-        latent = torch.randn(real_images.size(0), 128, 1, 1, device=self.device)
-        fake_images = self.generator(latent).detach()  # Detach to avoid training generator on these labels
+        latent = torch.randn(batch_size, 128, 1, 1, device=self.device)
+        fake_images = self.generator(latent)
         fake_preds = self.discriminator(fake_images)
         fake_targets = torch.zeros(fake_images.size(0), 1, device=self.device)
         fake_loss = self.loss_fn(fake_preds, fake_targets)
@@ -94,8 +94,8 @@ class ImageGenerator:
 
     def train_generator(self, optimizer):
         optimizer.zero_grad()
-        latent = torch.randn(128, 128, 1, 1)
-        fake_images = self.generator(latent).detach()  # Detach to avoid training discriminator on these labels
+        latent = torch.randn(batch_size, 128, 1, 1, device=self.device)
+        fake_images = self.generator(latent)
         preds = self.discriminator(fake_images)
         targets = torch.ones(fake_images.size(0), 1)
         loss = self.loss_fn(preds, targets)
