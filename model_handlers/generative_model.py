@@ -7,6 +7,8 @@ import torchvision.transforms as T
 from torchvision.utils import save_image, make_grid
 import matplotlib.pyplot as plt
 from tqdm.auto import tqdm
+from logging import Logger
+
 
 # Import custom modules
 from .generator import GeneratorModel
@@ -66,7 +68,11 @@ class ImageGenerator:
         self.discriminator = DiscriminatorModel().to(self.device)
         self.loss_fn = nn.BCEWithLogitsLoss().to(self.device)  # assuming binary classification for GAN
         self.sample_dir = "generated"
+        self.models_dir = "models"
         self.fixed_latent = torch.randn(batch_size, 128, 1, 1, device=self.device)
+        self.logger = Logger("Log",0) 
+        os.makedirs(self.models_dir, exist_ok=True)
+        os.makedirs(self.sample_dir, exist_ok=True)
 
 
     def train_discriminator(self, real_images, optimizer):
@@ -104,7 +110,6 @@ class ImageGenerator:
         return loss.item()
 
     def save_samples(self, index, latent_tensors, show=True):
-        os.makedirs(self.sample_dir, exist_ok=True)
         fake_images = self.generator(latent_tensors)
         filename = f'generated-images-{index:04d}.png'
         save_image(denormalize(fake_images), os.path.join(self.sample_dir, filename), nrow=8)
@@ -125,7 +130,6 @@ class ImageGenerator:
         # Optimizers
         opt_d = torch.optim.Adam(self.discriminator.parameters(), lr=lr, betas=(0.5, 0.999))
         opt_g = torch.optim.Adam(self.generator.parameters(), lr=lr, betas=(0.5, 0.999))
-
         for epoch in range(epochs):
             for real_images, _ in tqdm(train_loader):
                 # Train discriminator
@@ -135,7 +139,7 @@ class ImageGenerator:
                 loss_g = self.train_generator(opt_g)
 
             # Logging
-            print(f"Epoch [{epoch+1}/{epochs}], loss_g: {loss_g:.4f}, loss_d: {loss_d:.4f}, "
+            self.logger(f"Epoch [{epoch+1}/{epochs}], loss_g: {loss_g:.4f}, loss_d: {loss_d:.4f}, "
                   f"real_score: {real_score:.4f}, fake_score: {fake_score:.4f}")
 
             self.save_samples(epoch + start_idx, self.fixed_latent, show=False)
