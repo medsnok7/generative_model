@@ -52,7 +52,7 @@ transformer = T.Compose([
 train_dataset = ImageFolder(data_dir, transform=transformer)
 train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
-show_batch(train_loader)
+# show_batch(train_loader)
 
 def weights_init(m):
     classname = m.__class__.__name__
@@ -73,28 +73,31 @@ class ImageGenerator:
         self.generator.apply(weights_init)
         self.discriminator.apply(weights_init)
         self.loss_fn = nn.BCEWithLogitsLoss().to(self.device)
-        self.sample_dir = "generated"
+        self.generated_training = "generated_training"
+        self.generator_images = "generator_images"
         self.models_dir = "models"
         self.fixed_latent = torch.randn(batch_size, 128, 1, 1, device=self.device)
         os.makedirs(self.models_dir, exist_ok=True)
-        os.makedirs(self.sample_dir, exist_ok=True)
+        os.makedirs(self.generated_training, exist_ok=True)
+        os.makedirs(self.generator_images, exist_ok=True)
+
 
 
     def train_discriminator(self, real_images, optimizer):
         optimizer.zero_grad()
         bs = real_images.size(0)
         # Real images
+        real_images = real_images + 0.05 * torch.randn_like(real_images)
         real_preds = self.discriminator(real_images)
         real_targets = torch.full((bs,1), 0.9, device=self.device)
         real_loss = self.loss_fn(real_preds, real_targets)
         real_score = real_preds.mean().item()
 
         # Fake images
-        real_images = real_images + 0.05 * torch.randn_like(real_images)
         latent = torch.randn(bs, 128, 1, 1, device=self.device)
-        fake_images = self.generator(latent)
+        fake_images = self.generator(latent).detach()
         fake_preds = self.discriminator(fake_images)
-        fake_targets = torch.zeros(fake_images.size(0), 1, device=self.device)
+        fake_targets = torch.rand(bs,1,device=self.device)*0.1
         fake_loss = self.loss_fn(fake_preds, fake_targets)
         fake_score = fake_preds.mean().item()
 
@@ -108,7 +111,7 @@ class ImageGenerator:
 
         # Generate fake images
         latent = torch.randn(bs, 128, 1, 1, device=self.device)
-        fake_images = self.generator(latent)   # DO NOT detach here
+        fake_images = self.generator(latent)
 
         # Get discriminator predictions
         preds = self.discriminator(fake_images)
@@ -122,10 +125,10 @@ class ImageGenerator:
 
         return loss.item()
 
-    def save_samples(self, index, latent_tensors, show=True):
+    def save_samples(self, index, latent_tensors, dir_path, show=True):
         fake_images = self.generator(latent_tensors)
         filename = f'generated-images-{index:04d}.png'
-        save_image(denormalize(fake_images), os.path.join(self.sample_dir, filename), nrow=8)
+        save_image(denormalize(fake_images), os.path.join(dir_path, filename), nrow=8)
 
         if show:
             fig, ax = plt.subplots(figsize=(8, 8))
@@ -134,7 +137,7 @@ class ImageGenerator:
             ax.imshow(grid.permute(1, 2, 0))
             plt.show()
 
-    def fit(self, epochs, lr, start_idx=1):
+    def fit(self, epochs, lr_g,lr_d, start_idx=1):
         torch.cuda.empty_cache()
         
         # Load trained weights if exists
@@ -142,6 +145,7 @@ class ImageGenerator:
         gen_path = os.path.join(models_dir, "generator.pth")
         disc_path = os.path.join(models_dir, "discriminator.pth")
         if os.path.exists(gen_path) and os.path.exists(disc_path):
+            print("******************** [INFO] Loading Pretrained models ********************")
             self.generator.load_state_dict(torch.load(gen_path, map_location=self.device))
             self.discriminator.load_state_dict(torch.load(disc_path, map_location=self.device))
 
@@ -149,23 +153,45 @@ class ImageGenerator:
         self.generator.train()
         self.discriminator.train()
         # Optimizers
-        opt_d = torch.optim.Adam(self.discriminator.parameters(), lr=lr, betas=(0.5, 0.999))
-        opt_g = torch.optim.Adam(self.generator.parameters(), lr=lr, betas=(0.5, 0.999))
+        opt_d = torch.optim.Adam(self.discriminator.parameters(), lr=lr_d, betas=(0.5, 0.999))
+        opt_g = torch.optim.Adam(self.generator.parameters(), lr=lr_g, betas=(0.5, 0.999))
+        print(f"******************** [INFO] Training models with learning rate of discriminator {lr_d} and learning rate of generator {lr_g} ********************")
+        print(f"******************** [INFO] Training models with {epochs} Epoches ********************")
         
         for epoch in range(epochs):
             for real_images, _ in tqdm(train_loader):
                 real_images = real_images.to(self.device)
                 bs = real_images.size(0)
-
-                loss_d, real_score, fake_score = self.train_discriminator(real_images, opt_d)
+                for _ in range(2):
+                    loss_d, real_score, fake_score = self.train_discriminator(real_images, opt_d)
                 loss_g = self.train_generator(opt_g, bs)
             # Logging
-            print(f"Epoch [{epoch+1}/{epochs}], loss_g: {loss_g:.4f}, loss_d: {loss_d:.4f}, "
+            print(f"[INFO] Epoch [{epoch+1}/{epochs}], loss_g: {loss_g:.4f}, loss_d: {loss_d:.4f}, "
                   f"real_score: {real_score:.4f}, fake_score: {fake_score:.4f}")
 
-            self.save_samples(epoch + start_idx, self.fixed_latent, show=False)
+            self.save_samples(epoch + start_idx, self.fixed_latent, self.generated_training, show=False)
 
             # Save models
+            print(f"******************** [INFO][EPOCH: {epoch+1}/{epochs}]  Finished training, Saving Models ********************")
+
             torch.save(self.generator.state_dict(), gen_path)
             torch.save(self.discriminator.state_dict(), disc_path)
+        print("******************** [INFO] Loading Pretrained models ********************")
 
+
+    def generate(self):
+        torch.cuda.empty_cache()
+        # Load trained weights if exists
+        models_dir = os.path.join(project_root, self.models_dir)
+        gen_path = os.path.join(models_dir, "generator.pth")
+        disc_path = os.path.join(models_dir, "discriminator.pth")
+        if os.path.exists(gen_path) and os.path.exists(disc_path):
+            print(f"******************** [INFO] Generating using models, Saving Models ********************")
+            self.generator.load_state_dict(torch.load(gen_path, map_location=self.device))
+            self.discriminator.load_state_dict(torch.load(disc_path, map_location=self.device))
+            self.save_samples(0, self.fixed_latent, self.generator_images, show=False)
+            print(f"******************** [INFO] Finished generating, please check under {self.generator_images} ********************")
+
+        else:
+            print(f"******************** [ERROR] Cannot generate, please train your model first ********************")
+ 
