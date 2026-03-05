@@ -1,23 +1,18 @@
 {
-    "name": "Python DevContainer",
-    // "build": {
-    //   "dockerfile": "Dockerfile",
-    //   "context": ".."
-    // },
-    "image": "medsnok7/gen_ai:latest",
-    "workspaceFolder": "/workspace/generative_model",
-    "mounts": [
-      "source=${localWorkspaceFolder},target=/workspace/generative_model, type=bind,consistency=cached"
-    ],
-    "runArgs": ["--dns=8.8.8.8", "--dns=8.8.4.4"],
-    "settings": {
-      "python.defaultInterpreterPath": "/usr/local/bin/python"
-    },
-    "extensions": [
-      "ms-python.python",
-      "ms-python.vscode-pylance"
-    ],
-    "forwardPorts": [8000],
-    "postCreateCommand": "pip install --upgrade pip",
-    "initializeCommand": "bash .devcontainer/pre_spawn.sh gen_ai latest medsnok7 insert_token_id_here"
-  }
+  "name": "Python DevContainer",
+  "image": "medsnok7/gen_ai:latest",
+  "workspaceFolder": "/workspaces/generative_model",
+  "runArgs": [
+    "--dns=8.8.8.8",
+    "--dns=8.8.4.4"
+  ],
+  "settings": {
+    "python.defaultInterpreterPath": "/usr/local/bin/python"
+  },
+  "extensions": [
+    "ms-python.python",
+    "ms-python.vscode-pylance"
+  ],
+  "forwardPorts": [8000],
+  "postCreateCommand": "pip install --upgrade pip --root-user-action=ignore --disable-pip-version-check --quiet"
+}

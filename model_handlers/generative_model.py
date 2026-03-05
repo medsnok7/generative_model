@@ -7,13 +7,10 @@ import torchvision.transforms as T
 from torchvision.utils import save_image, make_grid
 import matplotlib.pyplot as plt
 from tqdm.auto import tqdm
-from logging import Logger
 
-
-# Import custom modules
 from .generator import GeneratorModel
 from .discriminator import DiscriminatorModel
-import todevice as dv  # Assumed custom device helper
+import todevice as dv
 
 # --------------------------
 # Settings and hyperparameters
@@ -57,6 +54,13 @@ train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
 show_batch(train_loader)
 
+def weights_init(m):
+    classname = m.__class__.__name__
+    if classname.find('Conv') != -1:
+        nn.init.normal_(m.weight.data, 0.0, 0.02)
+    elif classname.find('BatchNorm') != -1:
+        nn.init.normal_(m.weight.data, 1.0, 0.02)
+        nn.init.constant_(m.bias.data, 0)
 
 # --------------------------
 # ImageGenerator Class
@@ -66,26 +70,28 @@ class ImageGenerator:
         self.device = dv.get_defaul_device()
         self.generator = GeneratorModel().to(self.device)
         self.discriminator = DiscriminatorModel().to(self.device)
-        self.loss_fn = nn.BCEWithLogitsLoss().to(self.device)  # assuming binary classification for GAN
+        self.generator.apply(weights_init)
+        self.discriminator.apply(weights_init)
+        self.loss_fn = nn.BCEWithLogitsLoss().to(self.device)
         self.sample_dir = "generated"
         self.models_dir = "models"
         self.fixed_latent = torch.randn(batch_size, 128, 1, 1, device=self.device)
-        self.logger = Logger("Log",0) 
         os.makedirs(self.models_dir, exist_ok=True)
         os.makedirs(self.sample_dir, exist_ok=True)
 
 
     def train_discriminator(self, real_images, optimizer):
         optimizer.zero_grad()
-
+        bs = real_images.size(0)
         # Real images
         real_preds = self.discriminator(real_images)
-        real_targets = torch.ones(real_images.size(0), 1, device=self.device)
+        real_targets = torch.full((bs,1), 0.9, device=self.device)
         real_loss = self.loss_fn(real_preds, real_targets)
         real_score = real_preds.mean().item()
 
         # Fake images
-        latent = torch.randn(batch_size, 128, 1, 1, device=self.device)
+        real_images = real_images + 0.05 * torch.randn_like(real_images)
+        latent = torch.randn(bs, 128, 1, 1, device=self.device)
         fake_images = self.generator(latent)
         fake_preds = self.discriminator(fake_images)
         fake_targets = torch.zeros(fake_images.size(0), 1, device=self.device)
@@ -97,16 +103,23 @@ class ImageGenerator:
         loss.backward()
         optimizer.step()
         return loss.item(), real_score, fake_score
-
-    def train_generator(self, optimizer):
+    def train_generator(self, optimizer, bs):
         optimizer.zero_grad()
-        latent = torch.randn(batch_size, 128, 1, 1, device=self.device)
-        fake_images = self.generator(latent)
+
+        # Generate fake images
+        latent = torch.randn(bs, 128, 1, 1, device=self.device)
+        fake_images = self.generator(latent)   # DO NOT detach here
+
+        # Get discriminator predictions
         preds = self.discriminator(fake_images)
-        targets = torch.ones(fake_images.size(0), 1)
+
+        # Generator wants discriminator to think fakes are real
+        targets = torch.ones(bs, 1, device=self.device)
+
         loss = self.loss_fn(preds, targets)
         loss.backward()
         optimizer.step()
+
         return loss.item()
 
     def save_samples(self, index, latent_tensors, show=True):
@@ -124,27 +137,35 @@ class ImageGenerator:
     def fit(self, epochs, lr, start_idx=1):
         torch.cuda.empty_cache()
         
+        # Load trained weights if exists
+        models_dir = os.path.join(project_root, self.models_dir)
+        gen_path = os.path.join(models_dir, "generator.pth")
+        disc_path = os.path.join(models_dir, "discriminator.pth")
+        if os.path.exists(gen_path) and os.path.exists(disc_path):
+            self.generator.load_state_dict(torch.load(gen_path, map_location=self.device))
+            self.discriminator.load_state_dict(torch.load(disc_path, map_location=self.device))
+
         #train 
         self.generator.train()
         self.discriminator.train()
         # Optimizers
         opt_d = torch.optim.Adam(self.discriminator.parameters(), lr=lr, betas=(0.5, 0.999))
         opt_g = torch.optim.Adam(self.generator.parameters(), lr=lr, betas=(0.5, 0.999))
+        
         for epoch in range(epochs):
             for real_images, _ in tqdm(train_loader):
-                # Train discriminator
-                loss_d, real_score, fake_score = self.train_discriminator(real_images.to(self.device), opt_d)
+                real_images = real_images.to(self.device)
+                bs = real_images.size(0)
 
-                # Train generator
-                loss_g = self.train_generator(opt_g)
-
+                loss_d, real_score, fake_score = self.train_discriminator(real_images, opt_d)
+                loss_g = self.train_generator(opt_g, bs)
             # Logging
-            self.logger(f"Epoch [{epoch+1}/{epochs}], loss_g: {loss_g:.4f}, loss_d: {loss_d:.4f}, "
+            print(f"Epoch [{epoch+1}/{epochs}], loss_g: {loss_g:.4f}, loss_d: {loss_d:.4f}, "
                   f"real_score: {real_score:.4f}, fake_score: {fake_score:.4f}")
 
             self.save_samples(epoch + start_idx, self.fixed_latent, show=False)
 
-        # Save models
-        torch.save(self.generator.state_dict(), "./models/generator.pth")
-        torch.save(self.discriminator.state_dict(), "./models/discriminator.pth")
+            # Save models
+            torch.save(self.generator.state_dict(), gen_path)
+            torch.save(self.discriminator.state_dict(), disc_path)
 
