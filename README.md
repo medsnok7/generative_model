@@ -1,29 +1,29 @@
 Application Setup
-Using Docker
+	Using Docker
 
-Install the Docker extension in Visual Studio Code.
+		Install the Docker extension in Visual Studio Code.
+		
+		Ensure Docker is installed and running.
+		
+		Connect Visual Studio Code to WSL.
+		
+		Reopen the project inside the Dev Container.
 
-Ensure Docker is installed and running.
+	Training the Model
 
-Connect Visual Studio Code to WSL.
+		Run the dataset download script to retrieve the dataset from Kaggle:
+		
+			python datasetdownload.py
 
-Reopen the project inside the Dev Container.
+		Start training the model:
 
-Training the Model
+			python train.py
 
-Run the dataset download script to retrieve the dataset from Kaggle:
+	Generating Images
 
-python datasetdownload.py
+		Run the generation script:
 
-Start training the model:
-
-python train.py
-
-Generating Images
-
-Run the generation script:
-
-python generate.py
+			python generate.py
 
 Important:
 The models/ directory must contain the trained .pth model files (generator and discriminator weights).
