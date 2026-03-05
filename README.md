@@ -1,13 +1,13 @@
 Application Setup
 	Using Docker
 
-		Install the Docker extension in Visual Studio Code.
-		
-		Ensure Docker is installed and running.
-		
-		Connect Visual Studio Code to WSL.
-		
-		Reopen the project inside the Dev Container.
+	Install the Docker extension in Visual Studio Code.
+	
+	Ensure Docker is installed and running.
+	
+	Connect Visual Studio Code to WSL.
+	
+	Reopen the project inside the Dev Container.
 
 	Training the Model
 
