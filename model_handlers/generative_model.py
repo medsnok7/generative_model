@@ -10,57 +10,18 @@ from tqdm.auto import tqdm
 
 from .generator import GeneratorModel
 from .discriminator import DiscriminatorModel
+from .model_helper import denormalize, weights_init
 import todevice as dv
 
 # --------------------------
 # Settings and hyperparameters
 # --------------------------
-project_root = os.path.dirname(os.path.dirname(__file__))  # if inside model_handlers/
-data_dir = os.path.join(project_root, "animefacedataset")
-image_size = 64
-batch_size = 128
-stats = ((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))  # if inside model_handlers/
+DATASET_DIR = os.path.join(PROJECT_ROOT, "animefacedataset")
+IMAGE_SIZE = 64
+BATCH_SIZE = 128
+STATS = ((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 
-# --------------------------
-# Utility functions
-# --------------------------
-def denormalize(image_tensor):
-    return image_tensor * stats[1][0] + stats[0][0]
-
-def show_images(images, nmax=64):
-    fig, ax = plt.subplots(figsize=(8, 8))
-    ax.set_xticks([]); ax.set_yticks([])
-    grid = make_grid(denormalize(images.detach()[:nmax]), nrow=8)
-    ax.imshow(grid.permute(1, 2, 0))
-    plt.show()
-
-def show_batch(dl, nmax=64):
-    for images, _ in dl:
-        show_images(images, nmax)
-        break
-
-# --------------------------
-# Dataset and DataLoader
-# --------------------------
-transformer = T.Compose([
-    T.Resize((image_size, image_size)),
-    T.RandomHorizontalFlip(),
-    T.ToTensor(),
-    T.Normalize(*stats)
-])
-
-train_dataset = ImageFolder(data_dir, transform=transformer)
-train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-
-# show_batch(train_loader)
-
-def weights_init(m):
-    classname = m.__class__.__name__
-    if classname.find('Conv') != -1:
-        nn.init.normal_(m.weight.data, 0.0, 0.02)
-    elif classname.find('BatchNorm') != -1:
-        nn.init.normal_(m.weight.data, 1.0, 0.02)
-        nn.init.constant_(m.bias.data, 0)
 
 # --------------------------
 # ImageGenerator Class
@@ -76,10 +37,19 @@ class ImageGenerator:
         self.generated_training = "generated_training"
         self.generator_images = "generator_images"
         self.models_dir = "models"
-        self.fixed_latent = torch.randn(batch_size, 128, 1, 1, device=self.device)
+        self.fixed_latent = torch.randn(BATCH_SIZE, 128, 1, 1, device=self.device)
+        self.train_dataset = ImageFolder(DATASET_DIR, transform=self.transformer)
+        self.train_loader = DataLoader(self.train_dataset, batch_size=BATCH_SIZE, shuffle=True)
+        self.transformer = T.Compose([
+            T.Resize((IMAGE_SIZE, IMAGE_SIZE)),
+            T.RandomHorizontalFlip(),
+            T.ToTensor(),
+            T.Normalize(*STATS)
+        ])
         os.makedirs(self.models_dir, exist_ok=True)
         os.makedirs(self.generated_training, exist_ok=True)
         os.makedirs(self.generator_images, exist_ok=True)
+
 
 
 
@@ -141,7 +111,7 @@ class ImageGenerator:
         torch.cuda.empty_cache()
         
         # Load trained weights if exists
-        models_dir = os.path.join(project_root, self.models_dir)
+        models_dir = os.path.join(PROJECT_ROOT, self.models_dir)
         gen_path = os.path.join(models_dir, "generator.pth")
         disc_path = os.path.join(models_dir, "discriminator.pth")
         if os.path.exists(gen_path) and os.path.exists(disc_path):
@@ -159,7 +129,7 @@ class ImageGenerator:
         print(f"******************** [INFO] Training models with {epochs} Epoches ********************")
         
         for epoch in range(epochs):
-            for real_images, _ in tqdm(train_loader):
+            for real_images, _ in tqdm(self.train_loader):
                 real_images = real_images.to(self.device)
                 bs = real_images.size(0)
                 for _ in range(2):
@@ -182,7 +152,7 @@ class ImageGenerator:
     def generate(self):
         torch.cuda.empty_cache()
         # Load trained weights if exists
-        models_dir = os.path.join(project_root, self.models_dir)
+        models_dir = os.path.join(PROJECT_ROOT, self.models_dir)
         gen_path = os.path.join(models_dir, "generator.pth")
         disc_path = os.path.join(models_dir, "discriminator.pth")
         if os.path.exists(gen_path) and os.path.exists(disc_path):
