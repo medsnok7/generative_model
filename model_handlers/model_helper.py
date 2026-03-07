@@ -1,9 +1,30 @@
+# Copyright (c) 2026-present, Mohamed Chtourou.
+# All rights reserved.
+# This module defines utility functions for the GAN-based image generator, including denormalization of images, visualization of generated samples, and weight initialization for the generator and discriminator models. These functions are used to facilitate training and evaluation of the GAN models implemented in the generative_model.py module.
+
+
+import os
+import matplotlib.pyplot as plt
+
+
+# --------------------------
+# Settings and hyperparameters
+# --------------------------
+PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))  # if inside model_handlers/
+DATASET_DIR = os.path.join(PROJECT_ROOT, "animefacedataset")
+IMAGE_SIZE = 64
+BATCH_SIZE = 128
+STATS = ((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 
 # --------------------------
 # Utility functions
 # --------------------------
+
 def denormalize(image_tensor):
+
+
     return image_tensor * STATS[1][0] + STATS[0][0]
+
 
 def show_images(images, nmax=64):
     fig, ax = plt.subplots(figsize=(8, 8))
@@ -12,10 +33,12 @@ def show_images(images, nmax=64):
     ax.imshow(grid.permute(1, 2, 0))
     plt.show()
 
+
 def show_batch(dl, nmax=64):
     for images, _ in dl:
         show_images(images, nmax)
         break
+
 
 def weights_init(m):
     classname = m.__class__.__name__

@@ -1,3 +1,7 @@
+# Copyright (c) 2026-present, Mohamed Chtourou.
+# All rights reserved.
+# This module defines the ImageGenerator class, which encapsulates the training and generation logic for a GAN-based image generator. It includes methods for training the discriminator and generator, saving generated samples, and loading/saving model weights. The class uses PyTorch for model implementation and training, and torchvision for data handling and image processing.
+
 import os
 import torch
 import torch.nn as nn
@@ -5,22 +9,14 @@ from torch.utils.data import DataLoader
 from torchvision.datasets import ImageFolder
 import torchvision.transforms as T
 from torchvision.utils import save_image, make_grid
-import matplotlib.pyplot as plt
 from tqdm.auto import tqdm
 
 from .generator import GeneratorModel
 from .discriminator import DiscriminatorModel
 from .model_helper import denormalize, weights_init
+from .model_helper import (PROJECT_ROOT, DATASET_DIR, BATCH_SIZE)
 import todevice as dv
 
-# --------------------------
-# Settings and hyperparameters
-# --------------------------
-PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))  # if inside model_handlers/
-DATASET_DIR = os.path.join(PROJECT_ROOT, "animefacedataset")
-IMAGE_SIZE = 64
-BATCH_SIZE = 128
-STATS = ((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 
 
 # --------------------------
@@ -40,12 +36,7 @@ class ImageGenerator:
         self.fixed_latent = torch.randn(BATCH_SIZE, 128, 1, 1, device=self.device)
         self.train_dataset = ImageFolder(DATASET_DIR, transform=self.transformer)
         self.train_loader = DataLoader(self.train_dataset, batch_size=BATCH_SIZE, shuffle=True)
-        self.transformer = T.Compose([
-            T.Resize((IMAGE_SIZE, IMAGE_SIZE)),
-            T.RandomHorizontalFlip(),
-            T.ToTensor(),
-            T.Normalize(*STATS)
-        ])
+
         os.makedirs(self.models_dir, exist_ok=True)
         os.makedirs(self.generated_training, exist_ok=True)
         os.makedirs(self.generator_images, exist_ok=True)

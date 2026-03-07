@@ -1,3 +1,7 @@
+# Copyright (c) 2026-present, Mohamed Chtourou.
+# All rights reserved.
+# This module defines the DiscriminatorModel class, which implements the discriminator component of a GAN.
+
 import torch
 import torch.nn as nn
 

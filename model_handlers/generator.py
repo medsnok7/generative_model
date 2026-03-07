@@ -1,3 +1,6 @@
+# Copyright (c) 2026-present, Mohamed Chtourou.
+# All rights reserved.
+# This module defines the GeneratorModel class, which implements the generator component of a GAN.
 import torch
 import torch.nn as nn
 
