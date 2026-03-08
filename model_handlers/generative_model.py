@@ -185,8 +185,17 @@ class ImageGenerator:
             self.log.error(f"Was not able to find models, Cannot generate, please train your models first ")
         else:
             self.log.info(f" Generating using existing models ")
-            self.generator.load_state_dict(torch.load(gen_path, map_location=self.device))
-            self.discriminator.load_state_dict(torch.load(disc_path, map_location=self.device))
+            checkpoint_gen = torch.load(gen_path, map_location=self.device)
+            model_dict = self.generator.state_dict()
+            pretrained_dict = {k: v for k, v in checkpoint_gen.items() if k in model_dict and v.size() == model_dict[k].size()}
+            model_dict.update(pretrained_dict)
+            self.generator.load_state_dict(model_dict)
+
+            checkpoint_dis = torch.load(disc_path, map_location=self.device)
+            model_dict = self.discriminator.state_dict()
+            pretrained_dict = {k: v for k, v in checkpoint_dis.items() if k in model_dict and v.size() == model_dict[k].size()}
+            model_dict.update(pretrained_dict)
+            self.discriminator.load_state_dict(model_dict)
             self.save_samples(name, self.fixed_latent, self.generator_images, show=False)
             self.log.info(f" Finished generating, please check under {self.generator_images} ")
  
