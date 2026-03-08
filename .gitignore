@@ -2,4 +2,5 @@ animefacedataset/
 jellyfish-types/
 __pycache__/
 generator_images/
+generated_training/
 logging/

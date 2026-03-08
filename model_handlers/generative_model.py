@@ -17,8 +17,8 @@ from typing import Union
 # --------------------------
 # Importing helper functions and models
 # --------------------------
-from .generator import GeneratorModel128, GeneratorModel64
-from .discriminator import DiscriminatorModel128, DiscriminatorModel64
+from .generator import GeneratorModel
+from .discriminator import DiscriminatorModel
 from utilities.model_helper import (denormalize, weights_init, init_logger, create_folders, create_transformer, get_defaul_device)
 from utilities.model_helper import (PROJECT_ROOT, BATCH_SIZE, NOISE_PARAM, LATENT_DIM)
 
@@ -40,11 +40,11 @@ class ImageGenerator:
         self.logging_folder = "logging"
         create_folders(paths=[self.models_dir, self.generated_training, self.generator_images, self.logging_folder])
         if self.is_complex_image == 0:
-            self.generator = GeneratorModel64().to(self.device)
-            self.discriminator = DiscriminatorModel64().to(self.device)
+            self.generator = GeneratorModel(64).to(self.device)
+            self.discriminator = DiscriminatorModel(64).to(self.device)
         elif self.is_complex_image == 1:
-            self.generator = GeneratorModel128().to(self.device)
-            self.discriminator = DiscriminatorModel128().to(self.device)
+            self.generator = GeneratorModel(128).to(self.device)
+            self.discriminator = DiscriminatorModel(128).to(self.device)
         else: 
             raise RuntimeError("Can't choose model, please provide valid args, is_cmplx must be either 0:False/1:True")
         self.generator.apply(weights_init)
@@ -135,8 +135,19 @@ class ImageGenerator:
         disc_path = os.path.join(models_dir, f"{self.dataset_name}/discriminator.pth")
         if os.path.exists(gen_path) and os.path.exists(disc_path):
             self.log.info(" Loading Pretrained models ...")
-            self.generator.load_state_dict(torch.load(gen_path, map_location=self.device))
-            self.discriminator.load_state_dict(torch.load(disc_path, map_location=self.device))
+            checkpoint_gen = torch.load(gen_path, map_location=self.device)
+            model_dict = self.generator.state_dict()
+            pretrained_dict = {k: v for k, v in checkpoint_gen.items() if k in model_dict and v.size() == model_dict[k].size()}
+            model_dict.update(pretrained_dict)
+            self.generator.load_state_dict(model_dict)
+
+            checkpoint_dis = torch.load(disc_path, map_location=self.device)
+            model_dict = self.discriminator.state_dict()
+            pretrained_dict = {k: v for k, v in checkpoint_dis.items() if k in model_dict and v.size() == model_dict[k].size()}
+            model_dict.update(pretrained_dict)
+            self.discriminator.load_state_dict(model_dict)
+            # self.generator.load_state_dict(torch.load(gen_path, map_location=self.device))
+            # self.discriminator.load_state_dict(torch.load(disc_path, map_location=self.device))
         #train 
         self.generator.train()
         self.discriminator.train()
