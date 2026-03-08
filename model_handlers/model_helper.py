@@ -5,6 +5,8 @@
 
 import os
 import matplotlib.pyplot as plt
+import torch.nn as nn
+from torchvision.utils import save_image, make_grid
 
 
 # --------------------------
@@ -27,7 +29,7 @@ def denormalize(image_tensor):
 
 
 def show_images(images, nmax=64):
-    fig, ax = plt.subplots(figsize=(8, 8))
+    _, ax = plt.subplots(figsize=(8, 8))
     ax.set_xticks([]); ax.set_yticks([])
     grid = make_grid(denormalize(images.detach()[:nmax]), nrow=8)
     ax.imshow(grid.permute(1, 2, 0))

@@ -21,7 +21,7 @@ from tqdm.auto import tqdm
 from .generator import GeneratorModel
 from .discriminator import DiscriminatorModel
 from .model_helper import denormalize, weights_init, show_images, show_batch
-from .model_helper import (PROJECT_ROOT, DATASET_DIR, BATCH_SIZE)
+from .model_helper import (PROJECT_ROOT, DATASET_DIR, BATCH_SIZE, IMAGE_SIZE, STATS)
 import todevice as dv
 
 
@@ -32,6 +32,12 @@ class ImageGenerator:
     # This class encapsulates the training and generation logic for the GAN-based image generator.
     def __init__(self):
         self.device = dv.get_defaul_device()
+        self.transformer = T.Compose([
+            T.Resize((IMAGE_SIZE, IMAGE_SIZE)),
+            T.RandomHorizontalFlip(),
+            T.ToTensor(),
+            T.Normalize(*STATS)
+        ])
         self.generator = GeneratorModel().to(self.device)
         self.discriminator = DiscriminatorModel().to(self.device)
         self.generator.apply(weights_init)
@@ -151,7 +157,7 @@ class ImageGenerator:
             print(f"******************** [INFO] Generating using models, Saving Models ********************")
             self.generator.load_state_dict(torch.load(gen_path, map_location=self.device))
             self.discriminator.load_state_dict(torch.load(disc_path, map_location=self.device))
-            self.save_samples(0, self.fixed_latent, self.generator_images, show=False)
+            self.save_samples(1, self.fixed_latent, self.generator_images, show=False)
             print(f"******************** [INFO] Finished generating, please check under {self.generator_images} ********************")
         else:
             print(f"******************** [ERROR] Cannot generate, please train your model first ********************")
