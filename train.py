@@ -22,12 +22,12 @@ args = parser.parse_args()
 # Training discriminator and generator
 # --------------------------
 
-print("******************** [INFO] Starting training with the following hyperparameters: ********************")
-print(f"******************** [INFO] Generator Learning Rate: {args.lr_generator} ********************")
-print(f"******************** [INFO] Discriminator Learning Rate: {args.lr_discriminator} ********************")
-print(f"******************** [INFO] Number of Epochs: {args.epochs} ********************")
-
 image_generator = ImageGenerator()
+image_generator.log.info(" Starting training with the following hyperparameters: ")
+image_generator.log.info(f" Generator Learning Rate: {args.lr_generator} ")
+image_generator.log.info(f" Discriminator Learning Rate: {args.lr_discriminator} ")
+image_generator.log.info(f" Number of Epochs: {args.epochs} ")
+
 image_generator.fit(
     args.epochs,
     args.lr_generator,

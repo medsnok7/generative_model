@@ -4,10 +4,13 @@
 
 
 import os
+import logging
 import matplotlib.pyplot as plt
 import torch.nn as nn
-from torchvision.utils import save_image, make_grid
+import torchvision.transforms as T
 
+from torchvision.utils import save_image, make_grid
+from typing import Union
 
 # --------------------------
 # Settings and hyperparameters
@@ -17,14 +20,45 @@ DATASET_DIR = os.path.join(PROJECT_ROOT, "animefacedataset")
 IMAGE_SIZE = 64
 BATCH_SIZE = 128
 STATS = ((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-
+NOISE_PARAM = 0.05
 # --------------------------
 # Utility functions
 # --------------------------
 
+def create_transformer(image_size, stats) -> T.Compose: 
+    return T.Compose([
+            T.Resize((image_size, image_size)),
+            T.RandomHorizontalFlip(),
+            T.ToTensor(),
+            T.Normalize(*stats)
+        ])
+
+
+def create_folders( paths: Union[str, list]):
+    if isinstance(paths, str):
+        os.makedirs(paths, exist_ok=True)
+    if isinstance (paths, list):
+        for path in paths:
+            os.makedirs(path, exist_ok=True)
+
+
+
+def init_logger(logger_name: str, logging_path: str) :
+    logger = logging.getLogger(logger_name)
+    logger.setLevel(logging.DEBUG)
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('[%(levelname)s][%(asctime)s] %(message)s')
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
+    fh = logging.FileHandler(f"{logging_path}/{logger_name}.txt")
+    fh.setLevel(logging.DEBUG)
+    fh.setFormatter(formatter)
+    logger.addHandler(fh)
+    return logger
+
+
 def denormalize(image_tensor):
-
-
     return image_tensor * STATS[1][0] + STATS[0][0]
 
 
