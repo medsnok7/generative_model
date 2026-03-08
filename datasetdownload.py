@@ -4,18 +4,25 @@
 
 import opendatasets as od 
 import argparse
-
+from utilities.model_helper import init_logger, create_folders
+from utilities.model_helper import LOGGING_FOLDER
 
 # --------------------------
 # Dataset Download
 # --------------------------
+DEFAULT_URL = "https://www.kaggle.com/datasets/splcher/animefacedataset"
 
 parser = argparse.ArgumentParser(description="Download dataset for GAN image generator")
-parser.add_argument("--url", type=str, default="https://www.kaggle.com/datasets/splcher/animefacedataset",
+parser.add_argument("--url", type=str, default = DEFAULT_URL,
                     help="the url of the dataset to download")
 
 args = parser.parse_args()
 
-print(f"******************** [INFO] Dataset URL: {args.url} ********************")
-od.download(args.url)
-print("******************** [INFO] Dataset downloaded successfully! ********************")
+create_folders(LOGGING_FOLDER)
+logger = init_logger("Dataset", LOGGING_FOLDER)
+
+logger.info(f" Dataset URL: {args.url} ")
+if od.download(args.url):
+    logger.info(" Dataset downloaded successfully! ")
+else:
+    logger.warning(f"It was not possible to download dataset from url: { args.url}")

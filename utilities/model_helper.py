@@ -7,6 +7,7 @@ import os
 import logging
 import matplotlib.pyplot as plt
 import torch.nn as nn
+import torch
 import torchvision.transforms as T
 
 from torchvision.utils import save_image, make_grid
@@ -17,13 +18,23 @@ from typing import Union
 # --------------------------
 PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))  # if inside model_handlers/
 DATASET_DIR = os.path.join(PROJECT_ROOT, "animefacedataset")
+LOGGING_FOLDER = "logging"
+
 IMAGE_SIZE = 64
 BATCH_SIZE = 128
 STATS = ((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 NOISE_PARAM = 0.05
+
+
 # --------------------------
 # Utility functions
 # --------------------------
+def get_defaul_device():
+    if torch.cuda.is_available():
+        return torch.device('cuda')
+    else:
+        return torch.device('cpu')
+    
 
 def create_transformer(image_size, stats) -> T.Compose: 
     return T.Compose([

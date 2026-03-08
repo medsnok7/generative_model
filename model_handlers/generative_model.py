@@ -8,20 +8,19 @@
 import os
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
+import matplotlib.pyplot as plt
 from torchvision.datasets import ImageFolder
 from torchvision.utils import save_image, make_grid
-import matplotlib.pyplot as plt
 from tqdm.auto import tqdm
-
+from torch.utils.data import DataLoader
+from typing import Union
 # --------------------------
 # Importing helper functions and models
 # --------------------------
 from .generator import GeneratorModel
 from .discriminator import DiscriminatorModel
-from .model_helper import (denormalize, weights_init, init_logger, create_folders, create_transformer)
-from .model_helper import (PROJECT_ROOT, DATASET_DIR, BATCH_SIZE, IMAGE_SIZE, STATS, NOISE_PARAM)
-import todevice as dv
+from utilities.model_helper import (denormalize, weights_init, init_logger, create_folders, create_transformer, get_defaul_device)
+from utilities.model_helper import (PROJECT_ROOT, DATASET_DIR, BATCH_SIZE, IMAGE_SIZE, STATS, NOISE_PARAM)
 
 
 # --------------------------
@@ -30,7 +29,7 @@ import todevice as dv
 class ImageGenerator:
     # This class encapsulates the training and generation logic for the GAN-based image generator.
     def __init__(self):
-        self.device = dv.get_defaul_device()
+        self.device = get_defaul_device()
         self.transformer = create_transformer(IMAGE_SIZE, STATS)
         self.generated_training = "generated_training"
         self.generator_images = "generator_images"
@@ -88,10 +87,15 @@ class ImageGenerator:
         return loss.item()
 
 
-    def save_samples(self, index, latent_tensors, dir_path, show = False):
+    def save_samples(self, name: Union[int,str], latent_tensors, dir_path, show = False):
         # Generate and save sample images from the generator using the provided latent tensors, and optionally display them.
         fake_images = self.generator(latent_tensors)
-        filename = f'generated-images-{index:04d}.png'
+        if isinstance(name,int):
+            filename = f'generated-images-{name:04d}.png'
+        elif isinstance(name,str):
+            filename = f'{name}.png'
+        else:
+            filename = "default.png"
         save_image(denormalize(fake_images), os.path.join(dir_path, filename), nrow=8)
         if show:
             _, ax = plt.subplots(figsize=(8, 8))
@@ -139,7 +143,7 @@ class ImageGenerator:
         self.log.info(" Finished training, Saving models...")
 
 
-    def generate(self):
+    def generate(self, name: str):
         # Generate images using the trained generator model, and save them to the specified directory. The method also handles loading of model weights if they exist.
         torch.cuda.empty_cache()
         # Load trained weights if exists
@@ -150,7 +154,7 @@ class ImageGenerator:
             self.log.info(f" Generating using existing models ")
             self.generator.load_state_dict(torch.load(gen_path, map_location=self.device))
             self.discriminator.load_state_dict(torch.load(disc_path, map_location=self.device))
-            self.save_samples(1, self.fixed_latent, self.generator_images, show=False)
+            self.save_samples(name, self.fixed_latent, self.generator_images, show=False)
             self.log.info(f" Finished generating, please check under {self.generator_images} ")
         else:
             self.log.error(f" Cannot generate, please train your model first ")
