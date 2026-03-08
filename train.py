@@ -10,9 +10,9 @@ from model_handlers.generative_model import ImageGenerator
 # CLI arguments
 # --------------------------
 parser = argparse.ArgumentParser(description="Train GAN image generator")
-parser.add_argument("--lr_generator", type=float, default=0.0003,
+parser.add_argument("--gen_lr", type=float, default=0.0003,
                     help="Learning rate for the generator")
-parser.add_argument("--lr_discriminator", type=float, default=0.0001,
+parser.add_argument("--dis_lr", type=float, default=0.0001,
                     help="Learning rate for the discriminator")
 parser.add_argument("--epochs", type=int, default=20,
                     help="Number of training epochs")
@@ -23,13 +23,13 @@ args = parser.parse_args()
 # --------------------------
 
 image_generator = ImageGenerator()
-image_generator.log.info(" Starting training with the following hyperparameters: ")
-image_generator.log.info(f" Generator Learning Rate: {args.lr_generator} ")
-image_generator.log.info(f" Discriminator Learning Rate: {args.lr_discriminator} ")
+image_generator.log.info(f" Starting training with the following hyperparameters: ")
+image_generator.log.info(f" Generator Learning Rate: {args.gen_lr} ")
+image_generator.log.info(f" Discriminator Learning Rate: {args.dis_lr} ")
 image_generator.log.info(f" Number of Epochs: {args.epochs} ")
 
 image_generator.fit(
     args.epochs,
-    args.lr_generator,
-    args.lr_discriminator
+    args.gen_lr,
+    args.dis_lr
 )
