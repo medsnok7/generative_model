@@ -12,6 +12,7 @@ from utilities.model_helper import LOGGING_FOLDER
 # --------------------------
 DEFAULT_URL = "https://www.kaggle.com/datasets/splcher/animefacedataset"
 
+
 parser = argparse.ArgumentParser(description="Download dataset for GAN image generator")
 parser.add_argument("--url", type=str, default = DEFAULT_URL,
                     help="the url of the dataset to download")

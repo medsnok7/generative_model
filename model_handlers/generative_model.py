@@ -17,10 +17,10 @@ from typing import Union
 # --------------------------
 # Importing helper functions and models
 # --------------------------
-from .generator import GeneratorModel
-from .discriminator import DiscriminatorModel
+from .generator import GeneratorModel128, GeneratorModel64
+from .discriminator import DiscriminatorModel128, DiscriminatorModel64
 from utilities.model_helper import (denormalize, weights_init, init_logger, create_folders, create_transformer, get_defaul_device)
-from utilities.model_helper import (PROJECT_ROOT, DATASET_DIR, BATCH_SIZE, IMAGE_SIZE, STATS, NOISE_PARAM)
+from utilities.model_helper import (PROJECT_ROOT, BATCH_SIZE, NOISE_PARAM, LATENT_DIM)
 
 
 # --------------------------
@@ -28,25 +28,43 @@ from utilities.model_helper import (PROJECT_ROOT, DATASET_DIR, BATCH_SIZE, IMAGE
 # --------------------------
 class ImageGenerator:
     # This class encapsulates the training and generation logic for the GAN-based image generator.
-    def __init__(self):
+    def __init__(self, size: int, stats: int, batch_size:int = BATCH_SIZE, is_complex_image: int = 0):
+        self.size = size
+        self.batch_size = batch_size
+        self.is_complex_image = is_complex_image
         self.device = get_defaul_device()
-        self.transformer = create_transformer(IMAGE_SIZE, STATS)
+        self.transformer, self.stats = create_transformer(self.size, stats, self.is_complex_image)
         self.generated_training = "generated_training"
         self.generator_images = "generator_images"
         self.models_dir = "models"
         self.logging_folder = "logging"
         create_folders(paths=[self.models_dir, self.generated_training, self.generator_images, self.logging_folder])
-        self.generator = GeneratorModel().to(self.device)
-        self.discriminator = DiscriminatorModel().to(self.device)
+        if self.is_complex_image == 0:
+            self.generator = GeneratorModel64().to(self.device)
+            self.discriminator = DiscriminatorModel64().to(self.device)
+        elif self.is_complex_image == 1:
+            self.generator = GeneratorModel128().to(self.device)
+            self.discriminator = DiscriminatorModel128().to(self.device)
+        else: 
+            raise RuntimeError("Can't choose model, please provide valid args, is_cmplx must be either 0:False/1:True")
         self.generator.apply(weights_init)
         self.discriminator.apply(weights_init)
         self.loss_fn = nn.BCEWithLogitsLoss().to(self.device)
         self.log = init_logger("ImageGenerator",self.logging_folder)
-        self.fixed_latent = torch.randn(BATCH_SIZE, 128, 1, 1, device=self.device)
-        self.train_dataset = ImageFolder(DATASET_DIR, transform=self.transformer)
-        self.train_loader = DataLoader(self.train_dataset, batch_size=BATCH_SIZE, shuffle=True)
+        self.dataset_path = ""
+        self.dataset_name = ""
+        self.fixed_latent = torch.randn(self.batch_size, LATENT_DIM, 1, 1, device=self.device)
         
-
+    def prepare_dataset(self, dataset_name:str = "default"):
+        root = os.path.dirname(os.path.dirname(__file__))
+        self.dataset_path = os.path.join(root, dataset_name)
+        self.dataset_name = dataset_name
+        create_folders(paths=[f"{self.models_dir}/{self.dataset_name}"])
+        if os.path.exists(self.dataset_path):
+            self.train_dataset = ImageFolder(self.dataset_path, transform=self.transformer)
+            self.train_loader = DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=4)
+        return self.dataset_path
+        
     def train_discriminator(self, real_images, optimizer):
         # Train the discriminator on real and fake images, and return the loss and scores for logging.
         optimizer.zero_grad()
@@ -58,7 +76,7 @@ class ImageGenerator:
         real_loss = self.loss_fn(real_preds, real_targets)
         real_score = real_preds.mean().item()
         # Fake images
-        latent = torch.randn(bs, BATCH_SIZE, 1, 1, device=self.device)
+        latent = torch.randn(bs, LATENT_DIM, 1, 1, device=self.device)
         fake_images = self.generator(latent).detach()
         fake_preds = self.discriminator(fake_images)
         fake_targets = torch.rand(bs,1,device=self.device)*0.1
@@ -75,7 +93,7 @@ class ImageGenerator:
         # Train the generator to produce images that can fool the discriminator, and return the loss for logging.
         optimizer.zero_grad()
         # Generate fake images
-        latent = torch.randn(bs, BATCH_SIZE, 1, 1, device=self.device)
+        latent = torch.randn(bs, LATENT_DIM, 1, 1, device=self.device)
         fake_images = self.generator(latent)
         # Get discriminator predictions
         preds = self.discriminator(fake_images)
@@ -95,8 +113,8 @@ class ImageGenerator:
         elif isinstance(name,str):
             filename = f'{name}.png'
         else:
-            filename = "default.png"
-        save_image(denormalize(fake_images), os.path.join(dir_path, filename), nrow=8)
+            filename = "default_image.png"
+        save_image(denormalize(fake_images, self.stats), os.path.join(dir_path, filename), nrow=8)
         if show:
             _, ax = plt.subplots(figsize=(8, 8))
             ax.set_xticks([]); ax.set_yticks([])
@@ -107,11 +125,14 @@ class ImageGenerator:
 
     def fit(self, epochs, lr_g,lr_d, start_idx=1):
         # Train the generator and discriminator models for the specified number of epochs, using the provided learning rates. The method also handles model saving and logging of training progress.
+        if not self.train_loader:
+            self.log.error(f" Cannot start training, please download dataset first")
+            return
         torch.cuda.empty_cache()        
         # Load trained weights if exists
         models_dir = os.path.join(PROJECT_ROOT, self.models_dir)
-        gen_path = os.path.join(models_dir, "generator.pth")
-        disc_path = os.path.join(models_dir, "discriminator.pth")
+        gen_path = os.path.join(models_dir, f"{self.dataset_name}/generator.pth")
+        disc_path = os.path.join(models_dir, f"{self.dataset_name}/discriminator.pth")
         if os.path.exists(gen_path) and os.path.exists(disc_path):
             self.log.info(" Loading Pretrained models ...")
             self.generator.load_state_dict(torch.load(gen_path, map_location=self.device))
@@ -128,19 +149,18 @@ class ImageGenerator:
             for real_images, _ in tqdm(self.train_loader):
                 real_images = real_images.to(self.device)
                 bs = real_images.size(0)
-                for _ in range(2):
+                for _ in range(3):
                     loss_d, real_score, fake_score = self.train_discriminator(real_images, opt_d)
                 loss_g = self.train_generator(opt_g, bs)
             # Logging
             self.log.info(f" Epoch [{epoch+1}/{epochs}], loss_g: {loss_g:.4f}, loss_d: {loss_d:.4f}, "
                   f"real_score: {real_score:.4f}, fake_score: {fake_score:.4f}")
-
             self.save_samples(epoch + start_idx, self.fixed_latent, self.generated_training, show=False)
             # Save models
             self.log.info(f" [EPOCH: {epoch+1}/{epochs}]  Finished training, Saving Models")
             torch.save(self.generator.state_dict(), gen_path)
             torch.save(self.discriminator.state_dict(), disc_path)
-        self.log.info(" Finished training, Saving models...")
+        self.log.info(" Finished training all epochs...")
 
 
     def generate(self, name: str):
@@ -148,14 +168,14 @@ class ImageGenerator:
         torch.cuda.empty_cache()
         # Load trained weights if exists
         models_dir = os.path.join(PROJECT_ROOT, self.models_dir)
-        gen_path = os.path.join(models_dir, "generator.pth")
-        disc_path = os.path.join(models_dir, "discriminator.pth")
-        if os.path.exists(gen_path) and os.path.exists(disc_path):
+        gen_path = os.path.join(models_dir, f"{self.dataset_name}/generator.pth")
+        disc_path = os.path.join(models_dir, f"{self.dataset_name}/discriminator.pth")
+        if not os.path.exists(gen_path) or not os.path.exists(disc_path):
+            self.log.error(f"Was not able to find models, Cannot generate, please train your models first ")
+        else:
             self.log.info(f" Generating using existing models ")
             self.generator.load_state_dict(torch.load(gen_path, map_location=self.device))
             self.discriminator.load_state_dict(torch.load(disc_path, map_location=self.device))
             self.save_samples(name, self.fixed_latent, self.generator_images, show=False)
             self.log.info(f" Finished generating, please check under {self.generator_images} ")
-        else:
-            self.log.error(f" Cannot generate, please train your model first ")
  

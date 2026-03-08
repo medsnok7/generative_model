@@ -4,7 +4,8 @@
   "workspaceFolder": "/workspaces/generative_model",
   "runArgs": [
     "--dns=8.8.8.8",
-    "--dns=8.8.4.4"
+    "--dns=8.8.4.4",
+    "--shm-size=2g"
   ],
   "settings": {
     "python.defaultInterpreterPath": "/usr/local/bin/python"

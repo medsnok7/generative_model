@@ -17,13 +17,12 @@ from typing import Union
 # Settings and hyperparameters
 # --------------------------
 PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))  # if inside model_handlers/
-DATASET_DIR = os.path.join(PROJECT_ROOT, "animefacedataset")
 LOGGING_FOLDER = "logging"
-
-IMAGE_SIZE = 64
 BATCH_SIZE = 128
-STATS = ((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-NOISE_PARAM = 0.05
+NOISE_PARAM = 0.01
+LATENT_DIM = 128
+# IMAGE_SIZE = 128
+# STATS = ((1, 1, 1), (1, 1, 1))
 
 
 # --------------------------
@@ -36,13 +35,26 @@ def get_defaul_device():
         return torch.device('cpu')
     
 
-def create_transformer(image_size, stats) -> T.Compose: 
-    return T.Compose([
+def create_transformer(image_size, stats, is_complexe_image:bool = False) -> T.Compose: 
+    if is_complexe_image:
+     return T.Compose([
+            T.Resize((image_size, image_size)),
+            T.RandomHorizontalFlip(),
+            T.RandomRotation(10),
+            T.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),
+            T.RandomResizedCrop(image_size, scale=(0.8,1.0)),
+            T.ToTensor(),
+            T.Normalize(mean=[0.485, 0.456, 0.406],  # ImageNet-like normalization
+                                 std=[0.229, 0.224, 0.225])
+        ]), ((0.485, 0.456, 0.406),(0.229, 0.224, 0.225))
+    else:
+        return T.Compose([
             T.Resize((image_size, image_size)),
             T.RandomHorizontalFlip(),
             T.ToTensor(),
-            T.Normalize(*stats)
-        ])
+            T.Normalize(mean=[stats, stats, stats], std=[stats, stats, stats])
+        ]), ((stats, stats, stats), (stats, stats, stats))
+
 
 
 def create_folders( paths: Union[str, list]):
@@ -51,7 +63,6 @@ def create_folders( paths: Union[str, list]):
     if isinstance (paths, list):
         for path in paths:
             os.makedirs(path, exist_ok=True)
-
 
 
 def init_logger(logger_name: str, logging_path: str) :
@@ -69,21 +80,21 @@ def init_logger(logger_name: str, logging_path: str) :
     return logger
 
 
-def denormalize(image_tensor):
-    return image_tensor * STATS[1][0] + STATS[0][0]
+def denormalize(image_tensor, stats):
+    return image_tensor * stats[1][0] + stats[0][0]
 
 
-def show_images(images, nmax=64):
+def show_images(images,stats, nmax=64):
     _, ax = plt.subplots(figsize=(8, 8))
     ax.set_xticks([]); ax.set_yticks([])
-    grid = make_grid(denormalize(images.detach()[:nmax]), nrow=8)
+    grid = make_grid(denormalize(images.detach()[:nmax],stats), nrow=8)
     ax.imshow(grid.permute(1, 2, 0))
     plt.show()
 
 
-def show_batch(dl, nmax=64):
+def show_batch(dl,stats, nmax=64):
     for images, _ in dl:
-        show_images(images, nmax)
+        show_images(images, stats, nmax)
         break
 
 
