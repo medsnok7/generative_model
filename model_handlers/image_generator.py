@@ -206,8 +206,7 @@ class ImageGenerator:
         # Load trained weights if exists
         models_dir = os.path.join(PROJECT_ROOT, self.models_dir)
         gen_path = os.path.join(models_dir, f"{self.dataset_name}/generator.pth")
-        disc_path = os.path.join(models_dir, f"{self.dataset_name}/discriminator.pth")
-        if not os.path.exists(gen_path) or not os.path.exists(disc_path):
+        if not os.path.exists(gen_path):
             self.log.error(f"Was not able to find models, Cannot generate, please train your models first ")
         else:
             self.log.info(f" Generating using existing models ")
@@ -216,12 +215,6 @@ class ImageGenerator:
             pretrained_dict = {k: v for k, v in checkpoint_gen.items() if k in model_dict and v.size() == model_dict[k].size()}
             model_dict.update(pretrained_dict)
             self.generator.load_state_dict(model_dict)
-
-            checkpoint_dis = torch.load(disc_path, map_location=self.device)
-            model_dict = self.discriminator.state_dict()
-            pretrained_dict = {k: v for k, v in checkpoint_dis.items() if k in model_dict and v.size() == model_dict[k].size()}
-            model_dict.update(pretrained_dict)
-            self.discriminator.load_state_dict(model_dict)
             self.save_samples(name, self.fixed_latent, self.generator_images)
             self.log.info(f" Finished generating, please check under {self.generator_images} ")
  
