@@ -1,8 +1,11 @@
 # Copyright (c) 2026-present, Mohamed Chtourou.
 # All rights reserved.
-# This module defines utility functions for the GAN-based image generator, including denormalization of images, visualization of generated samples, and weight initialization for the generator and discriminator models. These functions are used to facilitate training and evaluation of the GAN models implemented in the generative_model.py module.
+# This module defines utility functions for the GAN-based image generator, including denormalization of images, visualization of generated samples, and weight initialization for the generator and discriminator models. These functions are used to facilitate training and evaluation of the GAN models implemented in the image_generator.py module.
 
 
+# --------------------------
+# Importing necessary libraries
+# --------------------------
 import os
 import logging
 import matplotlib.pyplot as plt
@@ -20,9 +23,11 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))  # if inside model_han
 LOGGING_FOLDER = "logging"
 BATCH_SIZE = 128
 NOISE_PARAM = 0.01
-LATENT_DIM = 128
-# IMAGE_SIZE = 128
-# STATS = ((1, 1, 1), (1, 1, 1))
+LATENT_DIM = 1024
+GENERATOR_LEARNING_RATE = 0.0003
+DISCRIMINATOR_LEARNING_RATE = 0.0001
+BETAS = (0.5, 0.999)
+
 
 
 # --------------------------
@@ -35,7 +40,7 @@ def get_defaul_device():
         return torch.device('cpu')
     
 
-def create_transformer(image_size, stats, is_complexe_image:bool = False) -> T.Compose: 
+def create_transformer(image_size, is_complexe_image:bool = False) -> T.Compose: 
     if is_complexe_image:
      return T.Compose([
             T.Resize((image_size, image_size)),
@@ -52,8 +57,8 @@ def create_transformer(image_size, stats, is_complexe_image:bool = False) -> T.C
             T.Resize((image_size, image_size)),
             T.RandomHorizontalFlip(),
             T.ToTensor(),
-            T.Normalize(mean=[stats, stats, stats], std=[stats, stats, stats])
-        ]), ((stats, stats, stats), (stats, stats, stats))
+            T.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+        ]), ((0.5, 0.5, 0.5),(0.5, 0.5, 0.5))
 
 
 

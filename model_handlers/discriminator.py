@@ -1,3 +1,10 @@
+# Copyright (c) 2026-present, Mohamed Chtourou.
+# All rights reserved.
+# This module defines the DiscriminatorModel class, which implements the discriminator component of a GAN.
+
+# --------------------------
+# Importing necessary libraries
+# --------------------------
 import torch
 import torch.nn as nn
 
@@ -7,7 +14,6 @@ class DiscriminatorModel(nn.Module):
     """
     def __init__(self, image_size: int = 64):
         super().__init__()
-        self.loss_fn = nn.BCEWithLogitsLoss()
         # Decide starting channels based on image size
         if image_size == 64:
             channels = [64, 128, 256, 512]

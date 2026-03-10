@@ -1,18 +1,18 @@
 # Copyright (c) 2026-present, Mohamed Chtourou.
 # All rights reserved.
-# This module defines the main entry point for training the GAN-based image generator. It imports the ImageGenerator class from the generative_model module and calls its fit method to train the generator and discriminator models using the specified learning rates and number of epochs.
+# This module defines the main entry point for training the GAN-based image generator. It imports the ImageGenerator class from the image_generator module and calls its fit method to train the generator and discriminator models using the specified learning rates and number of epochs.
 
 import argparse
 import os
 
-from model_handlers.generative_model import ImageGenerator
+from model_handlers.image_generator import ImageGenerator
 
 # --------------------------
 # CLI arguments
 # --------------------------
 parser = argparse.ArgumentParser(description="Train GAN image generator")
-parser.add_argument("--stats",type=float,default=0.5,
-                    help="stats number ")
+parser.add_argument("--latent_dim",type=int,default=1024,
+                    help="latent dimension, choose based on image input image dimension")
 parser.add_argument("--batch_size",type=int,default=128,
                     help="batch size ")
 parser.add_argument("--ds_folder_name", type=str, default="jellyfish-types",
@@ -34,7 +34,7 @@ if args.is_cmplx:
     size = 128
 else: 
     size = 64
-image_generator = ImageGenerator(size=size, stats=args.stats, batch_size=args.batch_size, is_complex_image=args.is_cmplx)
+image_generator = ImageGenerator(size=size, latent_dim=args.latent_dim, batch_size=args.batch_size, is_complex_image=args.is_cmplx)
 
 dataset_path = image_generator.prepare_dataset(args.ds_folder_name)
 if not os.path.exists(dataset_path):

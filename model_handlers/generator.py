@@ -1,11 +1,20 @@
+# Copyright (c) 2026-present, Mohamed Chtourou.
+# All rights reserved.
+# This module defines the GeneratorModel class, which implements the generator component of a GAN.
+
+# --------------------------
+# Importing necessary libraries
+# --------------------------
 import torch
 import torch.nn as nn
+
+from utilities.model_helper import LATENT_DIM
 
 class GeneratorModel(nn.Module):
     """
     Flexible Generator for GANs supporting multiple image sizes.
     """
-    def __init__(self, image_size: int = 64, latent_dim: int = 128):
+    def __init__(self, image_size: int = 64, latent_dim: int = LATENT_DIM):
         super().__init__()
         self.latent_dim = latent_dim
         # Define channel progression based on image size
