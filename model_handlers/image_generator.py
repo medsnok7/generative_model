@@ -163,7 +163,7 @@ class ImageGenerator:
             model_dict.update(pretrained_dict)
             self.discriminator.load_state_dict(model_dict)
 
-        # Set to training mode 
+        #train 
         self.generator.train()
         self.discriminator.train()
         # Optimizers
@@ -192,7 +192,7 @@ class ImageGenerator:
             # Logging
             self.log.info(f" Epoch [{epoch+1}/{epochs}], loss_g: {loss_g:.4f}, loss_d: {loss_d:.4f}, "
                   f"real_score: {real_score:.4f}, fake_score: {fake_score:.4f}")
-            self.save_samples(epoch + start_idx, self.fixed_latent, self.generated_training, show=False)
+            self.save_samples(epoch + start_idx, self.fixed_latent, self.generated_training)
             # Save models
             self.log.info(f" [EPOCH: {epoch+1}/{epochs}]  Finished training, Saving Models")
             torch.save(self.generator.state_dict(), gen_path)

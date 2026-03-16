@@ -2,9 +2,15 @@
 # All rights reserved.
 # This module defines the main entry point for training the GAN-based image generator. It imports the ImageGenerator class from the image_generator module and calls its fit method to train the generator and discriminator models using the specified learning rates and number of epochs.
 
+# --------------------------
+# Importing necessary libraries
+# --------------------------
 import argparse
 import os
 
+# --------------------------
+# Importing helper functions and models
+# --------------------------
 from model_handlers.image_generator import ImageGenerator
 
 # --------------------------
