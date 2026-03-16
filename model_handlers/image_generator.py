@@ -184,7 +184,7 @@ class ImageGenerator:
                     for _ in range(3):
                         loss_d, real_score, fake_score = self.train_discriminator(real_images, opt_d)
                     loss_g = self.train_generator(opt_g, batch_size)
-            print(prof.key_averages().table(sort_by="cpu_time_total" if self.device.type=="cpu" else "cuda_time_total", row_limit=10))
+            self.log.info(prof.key_averages().table(sort_by="cpu_time_total" if self.device.type=="cpu" else "cuda_time_total", row_limit=10))
             # Save profiler log
             log_file = os.path.join(self.logging_folder, f"profiler_epoch_{epoch+1}.txt")
             with open(log_file, "w") as f:
