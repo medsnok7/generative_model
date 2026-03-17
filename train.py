@@ -17,7 +17,7 @@ from model_handlers.image_generator import ImageGenerator
 # CLI arguments
 # --------------------------
 parser = argparse.ArgumentParser(description="Train GAN image generator")
-parser.add_argument("--latent_dim",type=int,default=1024,
+parser.add_argument("--latent_dim",type=int,default=256,
                     help="latent dimension, choose based on image input image dimension")
 parser.add_argument("--batch_size",type=int,default=128,
                     help="batch size ")
@@ -49,6 +49,7 @@ else:
     image_generator.log.info(f" Starting training with the following hyperparameters: ")
     image_generator.log.info(f" Generator Learning Rate: {args.gen_lr} ")
     image_generator.log.info(f" Discriminator Learning Rate: {args.dis_lr} ")
+    image_generator.log.info(f" Latent Dimension for the autoencoder: {args.latent_dim} ")
     image_generator.log.info(f" Number of Epochs: {args.epochs} ")
     image_generator.fit(
         args.epochs,

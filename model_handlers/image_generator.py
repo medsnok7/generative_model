@@ -22,7 +22,7 @@ from typing import Union
 from .generator import GeneratorModel
 from .discriminator import DiscriminatorModel
 from utilities.model_helper import (denormalize, weights_init, init_logger, create_folders, create_transformer, get_defaul_device)
-from utilities.model_helper import (PROJECT_ROOT, BATCH_SIZE, NOISE_PARAM, LATENT_DIM, DISCRIMINATOR_LEARNING_RATE, GENERATOR_LEARNING_RATE, BETAS)
+from utilities.model_helper import (PROJECT_ROOT, BATCH_SIZE, NOISE_PARAM, LATENT_DIM, DISCRIMINATOR_LEARNING_RATE, GENERATOR_LEARNING_RATE, BETAS, SEED)
 
 
 # --------------------------
@@ -32,7 +32,7 @@ class ImageGenerator:
     """
     This class encapsulates the training and generation logic for the GAN-based image generator.
     """
-    def __init__(self, size: int, latent_dim: int = LATENT_DIM, batch_size:int = BATCH_SIZE, is_complex_image: int = 0, seed:int = 42):
+    def __init__(self, size: int, latent_dim: int = LATENT_DIM, batch_size:int = BATCH_SIZE, is_complex_image: int = 0, seed:int = SEED):
         self.size = size
         self.latent_dim = latent_dim 
         self.batch_size = batch_size
