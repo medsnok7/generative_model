@@ -163,7 +163,7 @@ class ImageGenerator:
             model_dict.update(pretrained_dict)
             self.discriminator.load_state_dict(model_dict)
 
-        #train 
+        # Set to training mode
         self.generator.train()
         self.discriminator.train()
         # Optimizers
