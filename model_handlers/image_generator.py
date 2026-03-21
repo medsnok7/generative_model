@@ -49,31 +49,29 @@ class ImageGenerator:
         # set device (gpu, Cpu)
         self.device = get_defaul_device()
         # set transformer based on the complexity of dataset
-        self.transformer, self.stats = create_transformer(self.size, self.is_complex_image)
+        self.transformer, self.stats = create_transformer(self.size)
         # create necessary folders if they don't exist
-        self.generated_training = "generated_training"
+        self.generated_from_training = "generated_from_training"
         self.generator_images = "generator_images"
         self.models_dir = "models"
         self.logging_folder = "logging"
-        create_folders(paths=[self.models_dir, self.generated_training, self.generator_images, self.logging_folder])
+        create_folders(paths=[self.models_dir, self.generated_from_training, self.generator_images, self.logging_folder])
         # set model to be used based on the complexity of the dataset
-        if self.is_complex_image == 0:
-            self.generator = GeneratorModel(64,self.latent_dim).to(self.device)
-            self.discriminator = DiscriminatorModel(64).to(self.device)
-        elif self.is_complex_image == 1:
-            self.generator = GeneratorModel(128, self.latent_dim).to(self.device)
-            self.discriminator = DiscriminatorModel(128).to(self.device)
-        else: 
-            raise RuntimeError("Can't choose model, please provide valid args, is_cmplx must be either 0:False/1:True")
-        
+        self.generator = GeneratorModel(self.size,self.latent_dim).to(self.device)
+        self.discriminator = DiscriminatorModel(self.size).to(self.device)
         self.generator.apply(weights_init)
         self.discriminator.apply(weights_init)
         self.loss_fn = nn.BCEWithLogitsLoss().to(self.device)
         self.log = init_logger("ImageGenerator",self.logging_folder)
         self.dataset_path = ""
         self.dataset_name = ""
-        self.fixed_latent = torch.randn(self.batch_size, self.latent_dim, 1, 1, device=self.device)
-        
+        self.fixed_latent = torch.randn(self.batch_size, self.latent_dim, 1, 1, device=self.device)    
+
+    def set_models_folder_name(self, dataset_name:str = "default"):
+        root = os.path.dirname(os.path.dirname(__file__))
+        self.dataset_name = dataset_name
+        self.dataset_path = os.path.join(root, dataset_name)
+
     def prepare_dataset(self, dataset_name:str = "default"):
         root = os.path.dirname(os.path.dirname(__file__))
         self.dataset_path = os.path.join(root, dataset_name)
@@ -163,7 +161,7 @@ class ImageGenerator:
             model_dict.update(pretrained_dict)
             self.discriminator.load_state_dict(model_dict)
 
-        # Set to training mode
+        #train 
         self.generator.train()
         self.discriminator.train()
         # Optimizers
@@ -192,7 +190,7 @@ class ImageGenerator:
             # Logging
             self.log.info(f" Epoch [{epoch+1}/{epochs}], loss_g: {loss_g:.4f}, loss_d: {loss_d:.4f}, "
                   f"real_score: {real_score:.4f}, fake_score: {fake_score:.4f}")
-            self.save_samples(epoch + start_idx, self.fixed_latent, self.generated_training)
+            self.save_samples(epoch + start_idx, self.fixed_latent, self.generated_from_training)
             # Save models
             self.log.info(f" [EPOCH: {epoch+1}/{epochs}]  Finished training, Saving Models")
             torch.save(self.generator.state_dict(), gen_path)

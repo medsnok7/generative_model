@@ -8,6 +8,9 @@
 import torch
 import torch.nn as nn
 
+# --------------------------
+# DiscriminatorModel Class
+# --------------------------
 class DiscriminatorModel(nn.Module):
     """
     Flexible Discriminator for GANs supporting multiple image sizes.

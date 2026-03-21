@@ -9,7 +9,9 @@ import torch
 import torch.nn as nn
 
 from utilities.model_helper import LATENT_DIM
-
+# --------------------------
+# GeneratorModel Class
+# --------------------------
 class GeneratorModel(nn.Module):
     """
     Flexible Generator for GANs supporting multiple image sizes.
@@ -23,7 +25,7 @@ class GeneratorModel(nn.Module):
         elif image_size == 128:
             channels = [512, 256, 128, 64, 32, 3]
         else:
-            raise ValueError("Unsupported image_size. Use 64 or 128.")
+            raise ValueError("Unsupported image_size. Use 64 or 128, high resolution images will be supported in the future")
         layers = []
         in_channels = latent_dim
         for i, out_channels in enumerate(channels):

@@ -3,5 +3,5 @@ jellyfish-types/*
 cat-dataset/*
 __pycache__/
 generator_images/
-generated_training/
+generated_from_training/
 logging/

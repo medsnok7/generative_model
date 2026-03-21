@@ -17,14 +17,13 @@ from model_handlers.image_generator import ImageGenerator
 # CLI arguments
 # --------------------------
 parser = argparse.ArgumentParser(description="Train GAN image generator")
-parser.add_argument("--latent_dim",type=int,default=256,
+parser.add_argument("--img_size", type=int, choices=[64, 128], required=True, help="choose 64 or 128 Use models with 128x128 resolution else 64x64")
+parser.add_argument("--ds_folder_name", type=str, default="animefacedataset", required=True,
+                    help="name of the dataset folder ")
+parser.add_argument("--latent_dim",type=int,default=256, required=True,
                     help="latent dimension, choose based on image input image dimension")
 parser.add_argument("--batch_size",type=int,default=128,
                     help="batch size ")
-parser.add_argument("--ds_folder_name", type=str, default="jellyfish-types",
-                    help="name of the dataset folder ")
-parser.add_argument("--is_cmplx", type=int, default=0,
-                    help="is image complexe, False:0/True:1, if True use models with 128x128 resolution else 64x64")
 parser.add_argument("--gen_lr", type=float, default=0.0003,
                     help="Learning rate for the generator")
 parser.add_argument("--dis_lr", type=float, default=0.0001,
@@ -36,11 +35,8 @@ args = parser.parse_args()
 # --------------------------
 # Training discriminator and generator
 # --------------------------
-if args.is_cmplx:
-    size = 128
-else: 
-    size = 64
-image_generator = ImageGenerator(size=size, latent_dim=args.latent_dim, batch_size=args.batch_size, is_complex_image=args.is_cmplx)
+
+image_generator = ImageGenerator(size=args.img_size, latent_dim=args.latent_dim, batch_size=args.batch_size)
 
 dataset_path = image_generator.prepare_dataset(args.ds_folder_name)
 if not os.path.exists(dataset_path):

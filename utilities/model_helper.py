@@ -23,7 +23,7 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))  # if inside model_han
 LOGGING_FOLDER = "logging"
 BATCH_SIZE = 128
 NOISE_PARAM = 0.01
-LATENT_DIM = 1024
+LATENT_DIM = 256
 GENERATOR_LEARNING_RATE = 0.0003
 DISCRIMINATOR_LEARNING_RATE = 0.0001
 BETAS = (0.5, 0.999)
@@ -41,8 +41,8 @@ def get_defaul_device():
         return torch.device('cpu')
     
 
-def create_transformer(image_size, is_complexe_image:bool = False) -> T.Compose: 
-    if is_complexe_image:
+def create_transformer(image_size) -> T.Compose: 
+    if image_size == 128:
      return T.Compose([
             T.Resize((image_size, image_size)),
             T.RandomHorizontalFlip(),
@@ -53,14 +53,15 @@ def create_transformer(image_size, is_complexe_image:bool = False) -> T.Compose:
             T.Normalize(mean=[0.485, 0.456, 0.406],  # ImageNet-like normalization
                                  std=[0.229, 0.224, 0.225])
         ]), ((0.485, 0.456, 0.406),(0.229, 0.224, 0.225))
-    else:
+    elif image_size == 64:
         return T.Compose([
             T.Resize((image_size, image_size)),
             T.RandomHorizontalFlip(),
             T.ToTensor(),
             T.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
         ]), ((0.5, 0.5, 0.5),(0.5, 0.5, 0.5))
-
+    else:
+        raise ValueError("Unsupported image_size. Use 64 or 128, high resolution images will be supported in the future")
 
 
 def create_folders( paths: Union[str, list]):
